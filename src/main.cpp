@@ -23,9 +23,10 @@
 // TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE
 // OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-#include <curlpp/cURLpp.hpp>
 #include <curlpp/Easy.hpp>
 #include <curlpp/Options.hpp>
+#include <curlpp/cURLpp.hpp>
+#include <fstream>
 
 int main(int, const char **) {
   try {
@@ -38,16 +39,23 @@ int main(int, const char **) {
     // Set the URL.
     myRequest.setOpt<curlpp::options::Url>("http://example.com");
 
+    myRequest.setOpt<curlpp::options::HttpAuth>(123556456);
+
     // Send request and get a result.
     // By default the result goes to standard output.
-    myRequest.perform();
+    std::ofstream ofs("out_request");
+    ofs << myRequest;
   }
 
   catch (curlpp::RuntimeError &e) {
     std::cout << e.what() << std::endl;
+    return 1;
   }
 
   catch (curlpp::LogicError &e) {
     std::cout << e.what() << std::endl;
+    return 2;
   }
+
+  return 0;
 }
