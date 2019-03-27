@@ -6,17 +6,18 @@
 # Created:        Wed Mar 27 2019 12:12
 # Last Modified:  Wed Mar 27 2019 12:12
 
-import sys
 import configparser
-import time
-from splinter import Browser
-import os
 import logging
-from logging.handlers import RotatingFileHandler
-from dataclasses import dataclass
-from pathlib import Path
-from stravalib.client import Client
+import os
 import subprocess
+import sys
+import time
+from dataclasses import dataclass
+from logging.handlers import RotatingFileHandler
+from pathlib import Path
+
+from splinter import Browser
+from stravalib.client import Client
 
 LOG_NAME = 'strava'
 
@@ -29,13 +30,14 @@ class LoginInfo:
 
 @dataclass
 class StravaInfo:
+    code: str
     client_id: int
     client_secret: str
     redirect_uri: str
     scope: str
 
 
-def get_strava_code(strava):
+def get_strava_code(strava, login):
     """Use client id to get code"""
     logger = logging.getLogger(LOG_NAME)
     logger.debug('[get_strava_code]: client_id = %i', strava.client_id)
@@ -46,6 +48,14 @@ def get_strava_code(strava):
         redirect_uri=strava.redirect_uri,
         scope=strava.scope)
     browser.visit(url)
+
+    if login.username and login.password_method:
+        browser.fill('email', login.username)
+        browser.fill('password', login.password_method)
+        browser.find_by_id('login-button').click()
+
+    strava.code = input('Please enter code from response url:\n')
+    logger.debug('[get_strava_code]: code = "%s"', strava.code)
 
 
 def init_config(filename, config):
@@ -86,9 +96,11 @@ def load_strava_info(strava, config):
     """Load and check info from config.ini"""
 
     strava.client_id = int(config['Strava']['client_id'])
-    strava.client_secret = config['Strava']['client_secret']
-    strava.redirect_uri = config['Strava']['redirect_uri']
-    strava.scope = config['Strava']['scope']
+    strava.client_secret = config['Strava']['client_secret'].replace(
+        '"', '').replace('\'', '')
+    strava.redirect_uri = config['Strava']['redirect_uri'].replace(
+        '"', '').replace('\'', '')
+    strava.scope = config['Strava']['scope'].replace('"', '').replace('\'', '')
 
     if not strava.client_id:
         sys.exit("Emtpy client_id")
@@ -104,8 +116,10 @@ def get_login_info(login, config):
     """Get configuration file login info"""
 
     logger = logging.getLogger(LOG_NAME)
-    login.username = config['Login']['username']
-    login.password_method = config['Login']['password_method']
+    login.username = config['Login']['username'].replace('"', '').replace(
+        '\'', '')
+    login.password_method = config['Login']['password_method'].replace(
+        '"', '').replace('\'', '')
 
     if not login.password_method:
         return
@@ -134,4 +148,5 @@ if __name__ == '__main__':
     init_config(config_filename, config)
     load_strava_info(strava_info, config)
     get_login_info(login, config)
-    #  get_strava_code(strava_info)
+    get_strava_code(strava_info, login)
+    print(strava_info.code)
