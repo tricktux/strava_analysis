@@ -59,8 +59,8 @@ def get_strava_code(strava, login):
             browser.find_by_id('authorize').click()
         except Exception as e:
             pass
+        strava.code = browser.url
 
-    strava.code = input('Please enter code from response url:\n')
     logger.debug('[get_strava_code]: code = "%s"', strava.code)
 
 
