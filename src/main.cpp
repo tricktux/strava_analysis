@@ -31,28 +31,26 @@
 int main(int, const char **) {
   try {
     // That's all that is needed to do cleanup of used resources (RAII style).
-    curlpp::Cleanup myCleanup;
+    curlpp::Cleanup cleanup;
 
     // Our request to be sent.
-    curlpp::Easy myRequest;
+    curlpp::Easy request;
 
     // Set the URL.
-    myRequest.setOpt<curlpp::options::Url>("http://example.com");
+    request.setOpt<curlpp::options::Url>("http://example.com");
 
-    myRequest.setOpt<curlpp::options::HttpAuth>(123556456);
+    request.setOpt<curlpp::options::HttpAuth>(123556456);
 
     // Send request and get a result.
     // By default the result goes to standard output.
     std::ofstream ofs("out_request");
-    ofs << myRequest;
-  }
+    ofs << request;
 
-  catch (curlpp::RuntimeError &e) {
+	return 0;
+  } catch (curlpp::RuntimeError &e) {
     std::cout << e.what() << std::endl;
     return 1;
-  }
-
-  catch (curlpp::LogicError &e) {
+  } catch (curlpp::LogicError &e) {
     std::cout << e.what() << std::endl;
     return 2;
   }
