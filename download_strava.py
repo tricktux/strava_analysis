@@ -112,11 +112,10 @@ def get_login_info(login, config):
 
     #  Attempt to get password
     cmd = login.password_method.replace('"', '')
-    logger.debug('[get_login_info]: cmd = "%s"', cmd)
-    cmd = cmd.split(' ')
+    cmd = cmd.replace('\'', '')
     logger.debug('[get_login_info]: cmd = "%s"', cmd)
     result = subprocess.run(
-        login.password_method,
+        cmd,
         shell=True,
         stdout=subprocess.PIPE,
         stdin=subprocess.PIPE,
