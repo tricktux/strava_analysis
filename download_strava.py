@@ -41,6 +41,13 @@ def get_strava_code(strava, login):
     """Use client id to get code"""
     logger = logging.getLogger(LOG_NAME)
     logger.debug('[get_strava_code]: client_id = %i', strava.client_id)
+
+    if not login.username or not login.password_method:
+        logger.debug(
+            '[get_strava_code]: no login info provided. using manual method')
+        strava.code = input('Please enter strava code:\n')
+        return
+
     browser = Browser()
     client = Client()
     url = client.authorization_url(
@@ -49,19 +56,39 @@ def get_strava_code(strava, login):
         scope=strava.scope)
     browser.visit(url)
 
-    if login.username and login.password_method:
-        browser.fill('email', login.username)
-        browser.fill('password', login.password_method)
-        browser.find_by_id('login-button').click()
-        time.sleep(0.5)
-        #  There is an expected exception at this step
-        try:
-            browser.find_by_id('authorize').click()
-        except Exception as e:
-            pass
-        strava.code = browser.url
+    browser.fill('email', login.username)
+    browser.fill('password', login.password_method)
+    browser.find_by_id('login-button').click()
+    time.sleep(0.5)
+    #  There is an expected exception at this step
+    try:
+        browser.find_by_id('authorize').click()
+    except Exception as e:
+        pass
+    code = browser.url
+    logger.debug('[get_strava_code]: raw_code = "%s"', code)
+    browser.quit()
+    strava.code = parse_code_url(code)
+    logger.debug('[get_strava_code]: code = "%s"', code)
 
-    logger.debug('[get_strava_code]: code = "%s"', strava.code)
+
+def parse_code_url(raw_code):
+    """Given a full http extract code"""
+    logger = logging.getLogger(LOG_NAME)
+    logger.debug('[parse_code_url]: raw_code: "%s"', raw_code)
+    START_MAKER = "code="
+    END_MARKER = "&"
+
+    start = raw_code.find(START_MAKER) + len(START_MAKER)
+    if not start:
+        logger.fatal('[parse_code_url]: start: "%i"', start)
+        sys.exit("Failed to find code")
+    end = raw_code.rfind(END_MARKER)
+    if not end:
+        logger.fatal('[parse_code_url]: end: "%i"', end)
+        sys.exit("Failed to find code")
+
+    return raw_code[start:end]
 
 
 def init_config(filename, config):
@@ -131,8 +158,7 @@ def get_login_info(login, config):
         return
 
     #  Attempt to get password
-    cmd = login.password_method.replace('"', '')
-    cmd = cmd.replace('\'', '')
+    cmd = login.password_method
     logger.debug('[get_login_info]: cmd = "%s"', cmd)
     result = subprocess.run(
         cmd,
