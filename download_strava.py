@@ -1,3 +1,22 @@
+# File:           download_strava.py
+# Description:    Download strava data
+# Author:		    Reinaldo Molina
+# Email:          rmolin88 at gmail dot com
+# Revision:	    0.0.0
+# Created:        Wed Mar 27 2019 12:12
+# Last Modified:  Wed Mar 27 2019 12:12
+
+import configparser
+import time
+from splinter import Browser
+import os
+import logging
+from logging.handlers import RotatingFileHandler
+
+CONFIG_FILENAME = 'config.ini'
+LOG_NAME = 'strava'
+BROWSER = Browser()
+DIRECTORY = os.path.dirname(os.path.realpath(__file__))
 from stravalib.client import Client
 import pandas as pd
 
@@ -50,3 +69,42 @@ for activity_id, df in activities.items():
         ])[:30])
 
     writer.save()
+
+
+def get_code():
+    """Use client id to get code"""
+    pass
+
+
+def get_config():
+    """Read client id and client secret from config"""
+    config = configparser.ConfigParser()
+    try:
+        config.read(CONFIG_FILENAME)
+    except:
+        print('[]')
+
+
+def init_log():
+    """
+    Initialize logging.
+    Uses by default DIRECTORY
+    """
+
+    logger = logging.getLogger(LOG_NAME)
+    handler = RotatingFileHandler(
+        '{}/'.format(DIRECTORY) + LOG_NAME + '.log',
+        maxBytes=10**6,
+        backupCount=5)
+    formatter = logging.Formatter(
+        '%(asctime)s %(name)-12s %(levelname)-8s %(message)s')
+
+    handler.setFormatter(formatter)
+    logger.addHandler(handler)
+    logger.setLevel(logging.DEBUG)
+
+
+if __name__ == '__main__':
+    init_log()
+    get_config()
+    get_code()
