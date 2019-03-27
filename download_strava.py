@@ -13,12 +13,19 @@ from splinter import Browser
 import os
 import logging
 from logging.handlers import RotatingFileHandler
-
+from dataclasses import dataclass
 from pathlib import Path
 
 LOG_NAME = 'strava'
 #  from stravalib.client import Client
 #  import pandas as pd
+
+
+@dataclass
+class StravaInfo:
+    code: str
+    client_id: str
+    client_secret: str
 
 
 def get_code():
@@ -60,10 +67,26 @@ def init_log():
     logger.setLevel(logging.DEBUG)
 
 
+def load_strava_info(strava, config):
+    """Load and check info from config.ini"""
+
+    strava.client_id = config['Strava']['client_id']
+    strava.code = config['Strava']['code']
+    strava.client_secret = config['Strava']['client_secret']
+
+    if not strava.client_id:
+        sys.exit("Emtpy client_id")
+    if not strava.code:
+        sys.exit("Emtpy code")
+    if not strava.client_secret:
+        sys.exit("Emtpy client_secret")
+
+
 if __name__ == '__main__':
     config = configparser.ConfigParser()
     config_filename = 'config.ini'
+    strava_info = StravaInfo
 
     init_log()
     init_config(config_filename, config)
-    #  get_code()
+    load_strava_info(strava_info, config)
