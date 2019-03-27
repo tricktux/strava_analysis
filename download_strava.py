@@ -6,6 +6,7 @@
 # Created:        Wed Mar 27 2019 12:12
 # Last Modified:  Wed Mar 27 2019 12:12
 
+import sys
 import configparser
 import time
 from splinter import Browser
@@ -13,83 +14,89 @@ import os
 import logging
 from logging.handlers import RotatingFileHandler
 
-CONFIG_FILENAME = 'config.ini'
+from pathlib import Path
+
 LOG_NAME = 'strava'
-BROWSER = Browser()
-DIRECTORY = os.path.dirname(os.path.realpath(__file__))
 from stravalib.client import Client
 import pandas as pd
 
-client = Client()
-code = ''
-client_id = 12345
-client_secret = ''
+#  client = Client()
+#  code = ''
+#  client_id = 12345
+#  client_secret = ''
 
-year = 2018
-resolution = 'high'
-types = ['time', 'altitude', 'heartrate', 'temp', 'distance', 'watts']
+#  year = 2018
+#  resolution = 'high'
+#  types = ['time', 'altitude', 'heartrate', 'temp', 'distance', 'watts']
 
-access_token = client.exchange_code_for_token(
-    client_id=client_id, client_secret=client_secret, code=code)
+#  access_token = client.exchange_code_for_token(
+#  client_id=client_id, client_secret=client_secret, code=code)
 
-client = Client(access_token=access_token)
-df_overview = pd.DataFrame()
-activities = dict()
+#  client = Client(access_token=access_token)
+#  df_overview = pd.DataFrame()
+#  activities = dict()
 
-for activity in client.get_activities(
-        after='{}-01-01T00:00:00Z'.format(str(year)),
-        before='{}-01-01T00:00:00Z'.format(str(year + 1))):
-    streams = client.get_activity_streams(
-        activity.id, types=types, series_type='time', resolution=resolution)
-    for key, value in streams.items():
-        streams[key] = value.data
+#  for activity in client.get_activities(
+#  after='{}-01-01T00:00:00Z'.format(str(year)),
+#  before='{}-01-01T00:00:00Z'.format(str(year + 1))):
+#  streams = client.get_activity_streams(
+#  activity.id, types=types, series_type='time', resolution=resolution)
+#  for key, value in streams.items():
+#  streams[key] = value.data
 
-    df_overview = df_overview.append(
-        pd.DataFrame(
-            [{
-                'Name': activity.name,
-                'Date': activity.start_date,
-                'Moving Time [min]': int(activity.moving_time.seconds / 60),
-                'Distance [km]': round(activity.distance.num / 1000, 1),
-                'Measurements': list(streams.keys())
-            }],
-            index=[activity.id]))
+#  df_overview = df_overview.append(
+#  pd.DataFrame(
+#  [{
+#  'Name': activity.name,
+#  'Date': activity.start_date,
+#  'Moving Time [min]': int(activity.moving_time.seconds / 60),
+#  'Distance [km]': round(activity.distance.num / 1000, 1),
+#  'Measurements': list(streams.keys())
+#  }],
+#  index=[activity.id]))
 
-    activities[activity.id] = pd.DataFrame(streams)
+#  activities[activity.id] = pd.DataFrame(streams)
 
-writer = pd.ExcelWriter(
-    'strava_export_{}.xlsx'.format(str(year)), engine='openpyxl')
-df_overview.to_excel(writer, "Overview")
+#  writer = pd.ExcelWriter(
+#  'strava_export_{}.xlsx'.format(str(year)), engine='openpyxl')
+#  df_overview.to_excel(writer, "Overview")
 
-for activity_id, df in activities.items():
-    df.to_excel(
-        writer, ' '.join([
-            str(df_overview.loc[activity_id]['Date'].date()),
-            df_overview.loc[activity_id]['Name']
-        ])[:30])
+#  for activity_id, df in activities.items():
+#  df.to_excel(
+#  writer, ' '.join([
+#  str(df_overview.loc[activity_id]['Date'].date()),
+#  df_overview.loc[activity_id]['Name']
+#  ])[:30])
 
-    writer.save()
+#  writer.save()
 
 
 def get_code():
     """Use client id to get code"""
-    pass
+    browser = Browser()
 
 
-def get_config():
+def get_config(filename):
     """Read client id and client secret from config"""
     config = configparser.ConfigParser()
-    try:
-        config.read(CONFIG_FILENAME)
-    except:
-        print('[]')
+    logger = logging.getLogger(LOG_NAME)
+
+    my_file = Path(filename)
+    if not my_file.is_file():
+        logger.fatal('[get_config]: Failed to read config: "%s"', filename)
+        sys.exit("Failed to load config file")
+
+    config.read(filename)
 
 
 def init_log():
     """
     Initialize logging.
-    Uses by default DIRECTORY
+    Uses by default current directory to save log file
+    Log name is LOG_NAME
     """
+
+    DIRECTORY = os.path.dirname(os.path.realpath(__file__))
 
     logger = logging.getLogger(LOG_NAME)
     handler = RotatingFileHandler(
@@ -105,6 +112,8 @@ def init_log():
 
 
 if __name__ == '__main__':
+    config_filename = 'config.ini'
+
     init_log()
-    get_config()
-    get_code()
+    get_config(config_filename)
+    #  get_code()
