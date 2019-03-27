@@ -15,22 +15,29 @@ import logging
 from logging.handlers import RotatingFileHandler
 from dataclasses import dataclass
 from pathlib import Path
+from stravalib.client import Client
 
 LOG_NAME = 'strava'
-#  from stravalib.client import Client
 #  import pandas as pd
 
 
 @dataclass
 class StravaInfo:
-    code: str
-    client_id: str
+    client_id: int
     client_secret: str
 
 
-def get_code():
+def get_strava_code(client_id):
     """Use client id to get code"""
+    logger = logging.getLogger(LOG_NAME)
+    logger.debug('[get_strava_code]: client_id = %i', client_id)
     browser = Browser()
+    client = Client()
+    url = client.authorization_url(
+        client_id=client_id,
+        redirect_uri='http://127.0.0.1:8000/authorization',
+        scope='read_all')
+    browser.visit(url)
 
 
 def init_config(filename, config):
@@ -70,14 +77,11 @@ def init_log():
 def load_strava_info(strava, config):
     """Load and check info from config.ini"""
 
-    strava.client_id = config['Strava']['client_id']
-    strava.code = config['Strava']['code']
+    strava.client_id = int(config['Strava']['client_id'])
     strava.client_secret = config['Strava']['client_secret']
 
     if not strava.client_id:
         sys.exit("Emtpy client_id")
-    if not strava.code:
-        sys.exit("Emtpy code")
     if not strava.client_secret:
         sys.exit("Emtpy client_secret")
 
@@ -90,3 +94,4 @@ if __name__ == '__main__':
     init_log()
     init_config(config_filename, config)
     load_strava_info(strava_info, config)
+    get_strava_code(strava_info.client_id)
