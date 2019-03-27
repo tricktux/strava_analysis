@@ -156,3 +156,5 @@ if __name__ == '__main__':
     get_login_info(login, config)
     get_strava_code(strava_info, login)
     print(strava_info.code)
+    #  todo rm: parse sample code
+    #  http://127.0.0.1:8000/authorization?state=&code=b8231b080d3d565ca6ae342a26417eb2eff6d056&scope=read,read_all
