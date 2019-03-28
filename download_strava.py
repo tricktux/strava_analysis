@@ -158,19 +158,17 @@ def get_login_info(login, config):
         return
 
     #  Attempt to get password
-    cmd = login.password_method
+    cmd = login.password_method.split(' ')
     logger.debug('[get_login_info]: cmd = "%s"', cmd)
     result = subprocess.run(
         cmd,
-        shell=True,
         stdout=subprocess.PIPE,
         stdin=subprocess.PIPE,
         stderr=subprocess.PIPE)
     login.password_method = result.stdout.decode('utf-8')
     if not login.password_method:
         logger.fatal('[get_login_info]: failed to get password')
-        sys.exit('Failed to get password')
-
+        sys.exit('failed to get password')
 
 
 if __name__ == '__main__':
