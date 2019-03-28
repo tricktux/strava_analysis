@@ -102,7 +102,7 @@ def init_log():
         maxBytes=10**6,
         backupCount=5)
     formatter = logging.Formatter(
-        '%(asctime)s %(name)-12s %(levelname)-8s %(message)s')
+        '%(asctime)s_%(levelname)s: %(message)s')
 
     handler.setFormatter(formatter)
     logger.addHandler(handler)
@@ -222,6 +222,14 @@ if __name__ == '__main__':
     init_log()
     init_config(config_filename, config)
     load_token(token, config)
+
+    # debugging delete me
+    token = {
+        'access_token': '4c9a5dfa24b8c5f0bc74654a45c7ee45dbdb6a2d',
+        'refresh_token': 'b8a16a59ae5d2cec6abb44a381f1a177e1f62e50',
+        'expires_at': '1553799356'
+    }
+
     if not token['access_token']:
         get_and_save_token_info()
     print('Got token info...')
