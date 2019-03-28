@@ -195,6 +195,18 @@ def write_access_token(token, config, filename):
         config.write(configfile)
 
 
+def get_and_save_token_info():
+    """Load all necessary info and automagically get token"""
+    print('Loading token info...')
+    load_api_info(api_info, config)
+    get_login_info(login, config)
+    print('Getting token code...')
+    get_strava_code(api_info, login)
+    get_access_token(api_info, token, config)
+    print('Saving token...')
+    write_access_token(token, config, config_filename)
+
+
 if __name__ == '__main__':
     config = configparser.ConfigParser()
     config_filename = 'config.ini'
@@ -211,12 +223,5 @@ if __name__ == '__main__':
     init_config(config_filename, config)
     load_token(token, config)
     if not token['access_token']:
-        print('Loading token info...')
-        load_api_info(api_info, config)
-        get_login_info(login, config)
-        print('Getting token code...')
-        get_strava_code(api_info, login)
-        get_access_token(api_info, token, config)
-        print('Saving token...')
-        write_access_token(token, config, config_filename)
+        get_and_save_token_info()
     print('Got token info...')
