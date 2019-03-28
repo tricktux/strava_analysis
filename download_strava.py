@@ -50,10 +50,9 @@ def get_strava_code(api, login):
     except:
         pass
     code = browser.url
-    logger.debug('[get_strava_code]: raw_code = "%s"', code)
     browser.quit()
     api['code'] = parse_code_url(code)
-    logger.debug('[get_strava_code]: code = "%s"', code)
+    logger.debug('[get_strava_code]: code = "%s"', api['code'])
 
 
 def parse_code_url(raw_code):
@@ -151,7 +150,7 @@ def get_login_info(login, config):
         sys.exit('failed to get password')
 
 
-def get_access_token(api_info, token, config):
+def get_access_token(api_info, config):
     """Exchanges temporary code for permanent access token"""
     logger = logging.getLogger(LOG_NAME)
     client = Client()
@@ -165,13 +164,13 @@ def get_access_token(api_info, token, config):
                         access_token)
         sys.exit('Failed to get access_token')
 
-    token = access_token.copy()
     logger.debug('[get_access_token]: access_token.access_token: "%s"',
-                 token['access_token'])
+                 access_token['access_token'])
     logger.debug('[get_access_token]: access_token.refresh_token: "%s"',
-                 token['refresh_token'])
+                 access_token['refresh_token'])
     logger.debug('[get_access_token]: access_token.expires_at: "%i"',
-                 token['expires_at'])
+                 access_token['expires_at'])
+    return access_token
 
 
 def load_token(token, config):
@@ -190,21 +189,9 @@ def write_access_token(token, config, filename):
     """Write access_token to config"""
     config['Token']['access_token'] = token['access_token']
     config['Token']['refresh_token'] = token['refresh_token']
-    config['Token']['expires_at'] = token['expires_at']
+    config['Token']['expires_at'] = str(token['expires_at'])
     with open(filename, 'w') as configfile:
         config.write(configfile)
-
-
-def get_and_save_token_info():
-    """Load all necessary info and automagically get token"""
-    print('Loading token info...')
-    load_api_info(api_info, config)
-    get_login_info(login, config)
-    print('Getting token code...')
-    get_strava_code(api_info, login)
-    get_access_token(api_info, token, config)
-    print('Saving token...')
-    write_access_token(token, config, config_filename)
 
 
 if __name__ == '__main__':
@@ -223,13 +210,13 @@ if __name__ == '__main__':
     init_config(config_filename, config)
     load_token(token, config)
 
-    # debugging delete me
-    token = {
-        'access_token': '4c9a5dfa24b8c5f0bc74654a45c7ee45dbdb6a2d',
-        'refresh_token': 'b8a16a59ae5d2cec6abb44a381f1a177e1f62e50',
-        'expires_at': '1553799356'
-    }
-
     if not token['access_token']:
-        get_and_save_token_info()
+        print('Loading token info...')
+        load_api_info(api_info, config)
+        get_login_info(login, config)
+        print('Getting token code...')
+        get_strava_code(api_info, login)
+        token = get_access_token(api_info, config)
+        print('Saving token...')
+        write_access_token(token, config, config_filename)
     print('Got token info...')
