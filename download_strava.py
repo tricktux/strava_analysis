@@ -29,13 +29,19 @@ class LoginInfo:
 
 
 @dataclass
+class Token:
+    access_token: str
+    refresh_token: str
+    expires_at: int
+
+
+@dataclass
 class ApiInfo:
     code: str
     client_id: int
     client_secret: str
     redirect_uri: str
     scope: str
-    access_token: str
 
 
 def get_strava_code(api, login):
@@ -64,7 +70,7 @@ def get_strava_code(api, login):
     #  There is an expected exception at this step
     try:
         browser.find_by_id('authorize').click()
-    except Exception as e:
+    except:
         pass
     code = browser.url
     logger.debug('[get_strava_code]: raw_code = "%s"', code)
@@ -126,19 +132,13 @@ def init_log():
     logger.setLevel(logging.DEBUG)
 
 
-def load_strava_info(api, config):
+def load_api_info(api, config):
     """Load and check info from config.ini"""
 
     api.client_id = int(config['ApiInfo']['client_id'])
-    api.client_secret = config['ApiInfo']['client_secret'].replace(
-        '"', '').replace('\'', '')
-    api.redirect_uri = config['ApiInfo']['redirect_uri'].replace('"',
-                                                                 '').replace(
-                                                                     '\'', '')
-    api.scope = config['ApiInfo']['scope'].replace('"', '').replace('\'', '')
-    api.access_token = config['ApiInfo']['access_token'].replace('"',
-                                                                 '').replace(
-                                                                     '\'', '')
+    api.client_secret = config['ApiInfo']['client_secret']
+    api.redirect_uri = config['ApiInfo']['redirect_uri']
+    api.scope = config['ApiInfo']['scope']
 
     if not api.client_id:
         sys.exit("Emtpy client_id")
@@ -154,10 +154,8 @@ def get_login_info(login, config):
     """Get configuration file login info"""
 
     logger = logging.getLogger(LOG_NAME)
-    login.username = config['Login']['username'].replace('"', '').replace(
-        '\'', '')
-    login.password_method = config['Login']['password_method'].replace(
-        '"', '').replace('\'', '')
+    login.username = config['Login']['username']
+    login.password_method = config['Login']['password_method']
 
     if not login.password_method:
         return
@@ -176,7 +174,7 @@ def get_login_info(login, config):
         sys.exit('failed to get password')
 
 
-def get_access_token(api_info, config):
+def get_access_token(api_info, token, config):
     """Exchanges temporary code for permanent access token"""
     logger = logging.getLogger(LOG_NAME)
     client = Client()
@@ -190,16 +188,35 @@ def get_access_token(api_info, config):
                         access_token)
         sys.exit('Failed to get access_token')
 
-    api_info.access_token = access_token
+    temp_token = access_token.copy()
+    #  print(temp_token)
+    #  print(temp_token.keys())
+    #  print(temp_token.items())
     logger.debug('[get_access_token]: access_token.access_token: "%s"',
-                 access_token.access_token)
+                 temp_token['access_token'])
     logger.debug('[get_access_token]: access_token.refresh_token: "%s"',
-                 access_token.refresh_token)
+                 temp_token['refresh_token'])
+    logger.debug('[get_access_token]: access_token.expires_at: "%i"',
+                 temp_token['expires_at'])
+
+
+def load_token(token, config):
+    """Check to see if there is token info"""
+    try:
+        token.access_token = config['Token']['access_token']
+        token.refresh_token = config['Token']['refresh_token']
+        token.expires_at = config['Token']['expires_at']
+    except:
+        token.access_token = ''
+        token.refresh_token = ''
+        return
 
 
 def write_access_token(token, config, filename):
     """Write access_token to config"""
-    config['ApiInfo']['access_token'] = str(token)
+    config['Token']['access_token'] = token.access_token
+    config['Token']['refresh_token'] = token.refresh_token
+    config['Token']['expires_at'] = token.expires_at
     with open(filename, 'w') as configfile:
         config.write(configfile)
 
@@ -209,19 +226,18 @@ if __name__ == '__main__':
     config_filename = 'config.ini'
     api_info = ApiInfo
     login = LoginInfo
+    token = Token
 
     init_log()
     init_config(config_filename, config)
-    load_strava_info(api_info, config)
-    if not api_info.access_token:
+    load_token(token, config)
+    if not token.access_token:
+        print('Loading token info...')
+        load_api_info(api_info, config)
         get_login_info(login, config)
+        print('Getting token code...')
         get_strava_code(api_info, login)
-        get_access_token(api_info, config)
-        write_access_token(api_info.access_token, config, config_filename)
-    #  todo
-    #  - If there no access token go through all this
-    #   - Otherwise just get the data
-    #   - Finish the get_access_tocken(api_info)
-    #  todo rm: parse sample code
-    #  http://127.0.0.1:8000/authorization?state=&code=b8231b080d3d565ca6ae342a26417eb2eff6d056&scope=read,read_all
-    #  http://127.0.0.1:8000/authorization?state=&code=b8231b080d3d565ca6ae342a26417eb2eff6d056&scope=read,read_all
+        get_access_token(api_info, token, config)
+        #  print('Saving token...')
+        #  write_access_token(token, config, config_filename)
+    print('Got token info...')
