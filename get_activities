@@ -1,3 +1,69 @@
 #!/usr/bin/env python
 
-print("bleh")
+import stravalib
+import datetime
+import argparse
+import configparser
+from pathlib import Path
+import sys
+
+
+class Config():
+    def __init__(self, filename):
+        self.config = configparser.ConfigParser()
+
+        my_file = Path(filename)
+        if not my_file.is_file():
+            print(-1)
+            sys.exit(1)
+        self.config.read(filenames=filename)
+
+    def get_str(self, section, option, default):
+        """Get string option"""
+        try:
+            return self.config[section].get(option, default)
+        except:
+            return default
+
+
+class Parser():
+    def __init__(self):
+        self.parser = argparse.ArgumentParser(description='Get strava info')
+        self.parser.add_argument(
+            'config',
+            default='config.ini',
+            help='path to the configuration file')
+        self.args = self.parser.parse_args()
+
+
+class Strava(object):
+    def __init__(self, token, year):
+        self.current_year = datetime.date.today().year
+        if not year or year == 'current':
+            year = self.current_year
+        try:
+            self.client = stravalib.client.Client(access_token=token)
+            self.activities = self.client.get_activities(
+                    after='{}-01-01T00:00:00Z'.format(str(year)),
+                    before='{}-01-01T00:00:00Z'.format(str(year + 1)),
+                    limit=500)
+        except:
+            print(-3)
+            sys.exit(3)
+
+    def get_num_activities(self):
+        return len(list(self.activities))
+
+
+
+if __name__ == '__main__':
+    parser = Parser()
+    config = Config(parser.args.config)
+    token = config.get_str('Token', 'access_token', "")
+    if not token:
+        print(-2)
+        sys.exit(2)
+    year = config.get_str('Workout', 'year', "")
+    print(year)
+    strava = Strava(token, year)
+    print(strava.get_num_activities())
