@@ -1,11 +1,15 @@
 #!/usr/bin/env python
 
 import stravalib
+import logging
 import datetime
 import argparse
 import configparser
 from pathlib import Path
 import sys
+
+DEBUG = 0
+LOG = 'get_activities'
 
 
 class Config():
@@ -13,16 +17,28 @@ class Config():
         self.config = configparser.ConfigParser()
 
         my_file = Path(filename)
+        logger = logging.getLogger(LOG)
+        if DEBUG > 0:
+            logger.debug('[Config::init]: filename = %s', filename)
         if not my_file.is_file():
+            if DEBUG > 0:
+                logger.critical('[Config::init]: filename not found')
             print(-1)
             sys.exit(1)
         self.config.read(filenames=filename)
 
     def get_str(self, section, option, default):
         """Get string option"""
+        logger = logging.getLogger(LOG)
         try:
             return self.config[section].get(option, default)
         except:
+            if DEBUG > 0:
+                logger.critical(
+                    '[Config::get_str]: Failed to get option: "%s", section: "%s"',
+                    option,
+                    section,
+                    exc_info=True)
             return default
 
 
@@ -33,20 +49,26 @@ class Parser():
             'config',
             default='config.ini',
             help='path to the configuration file')
+        self.parser.add_argument(
+            '--debug', '-d', type=int, default=0, help='create debug file')
         self.args = self.parser.parse_args()
 
 
 class Strava(object):
     def __init__(self, token, year):
+        logger = logging.getLogger(LOG)
+        print(DEBUG)
+        if DEBUG > 0:
+            logger.debug('token: "%s", year: "%i"', token, year)
         self.current_year = datetime.date.today().year
         if not year or year == 'current':
             year = self.current_year
         try:
             self.client = stravalib.client.Client(access_token=token)
             self.activities = self.client.get_activities(
-                    after='{}-01-01T00:00:00Z'.format(str(year)),
-                    before='{}-01-01T00:00:00Z'.format(str(year + 1)),
-                    limit=500)
+                after='{}-01-01T00:00:00Z'.format(str(year)),
+                before='{}-01-01T00:00:00Z'.format(str(year + 1)),
+                limit=500)
         except:
             print(-3)
             sys.exit(3)
@@ -55,9 +77,28 @@ class Strava(object):
         return len(list(self.activities))
 
 
+def set_logger():
+    """Setups the logger"""
+    logger = logging.getLogger(LOG)
+    logger.setLevel(logging.INFO)
+
+    # create a file handler
+    handler = logging.FileHandler(LOG + '.log')
+    handler.setLevel(logging.DEBUG)
+
+    # create a logging format
+    formatter = logging.Formatter(
+        '%(asctime)s - %(levelname)s - %(message)s')
+    handler.setFormatter(formatter)
+
+    # add the handlers to the logger
+    logger.addHandler(handler)
+
 
 if __name__ == '__main__':
     parser = Parser()
+    DEBUG = parser.args.debug
+    set_logger()
     config = Config(parser.args.config)
     token = config.get_str('Token', 'access_token', "")
     if not token:
