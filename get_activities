@@ -9,7 +9,6 @@ import sys
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
 
-import stravalib
 from stravalib import unithelper
 from stravalib.client import Client
 
@@ -86,15 +85,24 @@ class Strava():
             year = self.current_year
         try:
             client = Client()
+            # Exchange refresh token for a "new" access token.
+            # If access_token has not expired (it expires every 6 hours)
+            # You will get the same old token. Otherwise, you will get a new
+            # token. which you have to save (update_token_information)
+            # Read here: https://developers.strava.com/docs/authentication/
+            # Specifically the "Refresh expired access tokens part"
             access_token = client.refresh_access_token(client_id,
                                                        client_secret, token)
-            client.refresh_access_token
             client.access_token = access_token["access_token"]
             self.activities = client.get_activities(
                 after='{}-01-01T00:00:00Z'.format(str(year)),
                 before='{}-01-01T00:00:00Z'.format(str(year + 1)),
                 limit=500)
-            if token is not access_token["refresh_token"]:
+            if token != access_token["refresh_token"]:
+                if DEBUG > 0:
+                    logger.debug('There is a new token in town!!!')
+                    logger.debug('old token: "%s". new token: "%s"', token,
+                                 access_token["refresh_token"])
                 self.update_token_information(access_token)
         except:
             if DEBUG > 0:
@@ -104,11 +112,9 @@ class Strava():
 
     def update_token_information(self, token):
         """Write the newly recently obtained information"""
-        if DEBUG > 0:
-            logger.debug('There is a new token in town!!!')
         self.config.set_str('Token', 'access_token', token['access_token'])
         self.config.set_str('Token', 'refresh_token', token['refresh_token'])
-        self.config.set_str('Token', 'expires_at', token['expires_at'])
+        self.config.set_str('Token', 'expires_at', str(token['expires_at']))
 
     def get_num_activities(self):
         return str(len(list(self.activities)))
@@ -179,7 +185,7 @@ if __name__ == '__main__':
         print(-2)
         sys.exit(2)
     year = config.get_str('Workout', 'year', "")
-    strava = Strava(token, client_id, client_secret, year)
+    strava = Strava(token, client_id, client_secret, year, config)
     num_workouts = strava.get_num_activities()
     num_hours = strava.get_total_time()
     num_miles = strava.get_total_distance()
