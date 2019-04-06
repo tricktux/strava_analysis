@@ -94,7 +94,25 @@ class Strava(object):
         for activity in self.activities:
             d += float(activity.distance)
 
-        return str(round(d*0.0006213712, 1))
+        return str(round(d * 0.0006213712, 1))
+
+    def sortby(self, item):
+        return item.start_date
+
+    def get_last_bike_avg_speed(self):
+        """Get the avg speed in miles per hour of the last bike ride"""
+        """Types seem to be 'Run', 'Swim', 'Ride'"""
+        logger = logging.getLogger(LOG)
+        avg = 0.0
+        for activity in sorted(self.activities, key=self.sortby, reverse=True):
+            if DEBUG > 0:
+                logger.debug('[get_last_bike_avg_speed]: type = "%s"',
+                             str(activity.type))
+            if activity.type == 'Ride':
+                avg = unithelper.miles_per_hour(activity.average_speed)
+                break
+
+        return str(avg)
 
 
 def set_logger():
@@ -103,11 +121,8 @@ def set_logger():
 
     logger = logging.getLogger(LOG)
     handler = RotatingFileHandler(
-        '{}/'.format(directory) + LOG + '.log',
-        maxBytes=10**6,
-        backupCount=5)
-    formatter = logging.Formatter(
-        '%(asctime)s_%(levelname)s: %(message)s')
+        '{}/'.format(directory) + LOG + '.log', maxBytes=10**6, backupCount=5)
+    formatter = logging.Formatter('%(asctime)s_%(levelname)s: %(message)s')
 
     handler.setFormatter(formatter)
     logger.addHandler(handler)
@@ -128,4 +143,6 @@ if __name__ == '__main__':
     num_workouts = strava.get_num_activities()
     num_hours = strava.get_total_time()
     num_miles = strava.get_total_distance()
-    print(num_workouts + ' ' + num_hours + ' ' + num_miles + 'm')
+    avg_bike_speed = strava.get_last_bike_avg_speed()[:-7]
+    print(num_workouts + ' ' + num_hours + ' ' + num_miles + 'm ' +
+          avg_bike_speed + ' m/h')
