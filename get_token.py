@@ -100,8 +100,7 @@ def init_log():
         '{}/'.format(DIRECTORY) + LOG_NAME + '.log',
         maxBytes=10**6,
         backupCount=5)
-    formatter = logging.Formatter(
-        '%(asctime)s_%(levelname)s: %(message)s')
+    formatter = logging.Formatter('%(asctime)s_%(levelname)s: %(message)s')
 
     handler.setFormatter(formatter)
     logger.addHandler(handler)
@@ -208,7 +207,7 @@ if __name__ == '__main__':
 
     init_log()
     init_config(config_filename, config)
-    load_token(token, config)
+    #  load_token(token, config)
 
     if not token['access_token']:
         print('Loading token info...')
