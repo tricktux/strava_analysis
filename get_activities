@@ -85,7 +85,8 @@ class Strava(object):
         elapse_time = 0
         for activity in self.activities:
             elapse_time += activity.elapsed_time.seconds
-        return str(datetime.timedelta(seconds=elapse_time))
+        t = str(datetime.timedelta(seconds=elapse_time))
+        return t[:-3]
 
     def get_total_distance(self):
         """Get total distance in miles for all activities"""
