@@ -1,12 +1,15 @@
 #!/usr/bin/env python
 
 import stravalib
+from stravalib import unithelper
 import logging
+from logging.handlers import RotatingFileHandler
 import datetime
 import argparse
 import configparser
 from pathlib import Path
 import sys
+import os
 
 DEBUG = 0
 LOG = 'get_activities'
@@ -57,9 +60,8 @@ class Parser():
 class Strava(object):
     def __init__(self, token, year):
         logger = logging.getLogger(LOG)
-        print(DEBUG)
         if DEBUG > 0:
-            logger.debug('token: "%s", year: "%i"', token, year)
+            logger.debug('token: "%s", year: "%s"', token, year)
         self.current_year = datetime.date.today().year
         if not year or year == 'current':
             year = self.current_year
@@ -70,34 +72,50 @@ class Strava(object):
                 before='{}-01-01T00:00:00Z'.format(str(year + 1)),
                 limit=500)
         except:
+            if DEBUG > 0:
+                logger.critical('failed to get activities', exc_info=True)
             print(-3)
             sys.exit(3)
 
     def get_num_activities(self):
-        return len(list(self.activities))
+        return str(len(list(self.activities)))
+
+    def get_total_time(self):
+        """Get time for all activities"""
+        elapse_time = 0
+        for activity in self.activities:
+            elapse_time += activity.elapsed_time.seconds
+        return str(datetime.timedelta(seconds=elapse_time))
+
+    def get_total_distance(self):
+        """Get total distance in miles for all activities"""
+        d = 0.0
+        for activity in self.activities:
+            d += float(activity.distance)
+
+        return str(round(d*0.0006213712, 1))
 
 
 def set_logger():
     """Setups the logger"""
+    directory = os.path.dirname(os.path.realpath(__file__))
+
     logger = logging.getLogger(LOG)
-    logger.setLevel(logging.INFO)
-
-    # create a file handler
-    handler = logging.FileHandler(LOG + '.log')
-    handler.setLevel(logging.DEBUG)
-
-    # create a logging format
+    handler = RotatingFileHandler(
+        '{}/'.format(directory) + LOG + '.log',
+        maxBytes=10**6,
+        backupCount=5)
     formatter = logging.Formatter(
-        '%(asctime)s - %(levelname)s - %(message)s')
-    handler.setFormatter(formatter)
+        '%(asctime)s_%(levelname)s: %(message)s')
 
-    # add the handlers to the logger
+    handler.setFormatter(formatter)
     logger.addHandler(handler)
+    logger.setLevel(logging.DEBUG)
 
 
 if __name__ == '__main__':
     parser = Parser()
-    DEBUG = parser.args.debug
+    DEBUG = int(parser.args.debug)
     set_logger()
     config = Config(parser.args.config)
     token = config.get_str('Token', 'access_token', "")
@@ -106,4 +124,7 @@ if __name__ == '__main__':
         sys.exit(2)
     year = config.get_str('Workout', 'year', "")
     strava = Strava(token, year)
-    print(strava.get_num_activities())
+    num_workouts = strava.get_num_activities()
+    num_hours = strava.get_total_time()
+    num_miles = strava.get_total_distance()
+    print(num_workouts + ' ' + num_hours + ' ' + num_miles + 'm')
