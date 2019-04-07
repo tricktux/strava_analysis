@@ -156,11 +156,9 @@ class Strava():
 
 def set_logger():
     """Setups the logger"""
-    directory = os.path.dirname(os.path.realpath(__file__))
-
     logger = logging.getLogger(LOG)
     handler = RotatingFileHandler(
-        '{}/'.format(directory) + LOG + '.log', maxBytes=10**6, backupCount=5)
+        '/tmp/' + LOG + '.log', maxBytes=10**6, backupCount=5)
     formatter = logging.Formatter('%(asctime)s_%(levelname)s: %(message)s')
 
     handler.setFormatter(formatter)
